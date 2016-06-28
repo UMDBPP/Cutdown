@@ -1,0 +1,152 @@
+#include <Cutdown.h>
+
+// TODO port this loop into actual library code
+void loop()
+{
+    // look for any new messages
+    read_input();
+    // if system is armed, increment the timer indicating for how long
+    if (armed_ctr > 0)
+    {
+        armed_ctr++;
+    }
+    // if the system has been armed for more than the timeout, disarm
+    if (armed_ctr > ARM_TIMEOUT)
+    {
+        disarm_system();
+    }
+    // wait
+    delay (CYCLE_DELAY);
+}
+
+// TODO abstract this
+void fire()
+{
+    // if the system is armed, fire
+    if (armed)
+    {
+        digitalWrite(TRIGGER_PIN, HIGH);
+        delay(3000);
+        digitalWrite(TRIGGER_PIN, LOW);
+        tlm_pos = 0;
+        tlm_pos = addIntToTlm < uint8_t > (0xFF, tlm_data, tlm_pos);
+        sendTlmMsg(TLM_ADDR, tlm_data, tlm_pos);
+    }
+    // disarm the system again to prevent repeated firing attempts
+    disarm_system();
+}
+
+char begin()
+{
+    armed = false;
+    pkt_type = 0;
+    bytes_read = 0;
+    fcn_code = 0;
+    tlm_pos = 0;
+    armed_ctr = -1;
+    
+    // disarm the system before we enable the pins
+    disarm_system();
+    
+    pinMode(TRIGGER_PIN, OUTPUT);
+    pinMode(ARMED_LED_PIN, OUTPUT);
+    
+    Serial.begin(9600);
+    
+    if (!InitXBee(XBEE_ADDR, XBEE_PAN_ID, Serial))
+    {
+        // it initialized
+        tlm_pos = 0;
+        tlm_pos = addIntToTlm < uint8_t > (0xAC, tlm_data, tlm_pos);
+        sendTlmMsg(TLM_ADDR, tlm_data, tlm_pos);
+        return 1;
+    }
+    else
+    {
+        // you're fucked
+        return 0;
+    }
+}
+
+void read_input()
+{
+    if ((pkt_type = readMsg(1)) == 0)
+    {
+        // Read something else, try again
+    }
+    // if we didn't have a read error, process it
+    if (pkt_type > -1)
+    {
+        if (pkt_type)
+        {
+            bytes_read = readCmdMsg(incoming_bytes, fcn_code);
+            command_response(fcn_code, incoming_bytes, bytes_read);
+        }
+        else
+        {
+            tlm_pos = 0;
+            tlm_pos = addIntToTlm < uint8_t > (0xAF, tlm_data, tlm_pos);
+            sendTlmMsg(TLM_ADDR, tlm_data, tlm_pos);
+        }
+    }
+}
+
+void arm_system()
+{
+    armed = true;
+    digitalWrite(ARMED_LED_PIN, HIGH);
+    
+    tlm_pos = 0;
+    tlm_pos = addIntToTlm < uint8_t > (0xAA, tlm_data, tlm_pos);
+    sendTlmMsg(TLM_ADDR, tlm_data, tlm_pos);
+    
+    armed_ctr = 1;
+}
+
+void disarm_system()
+{
+    armed = false;
+    digitalWrite(ARMED_LED_PIN, LOW);
+    armed_ctr = -1;
+}
+
+bool isSystemArmed()
+{
+    return armed;
+}
+
+// private
+void command_response(uint8_t _fcncode, uint8_t data[], uint8_t length)
+{
+    // process a command to arm the system
+    if (_fcncode == ARM_FCNCODE)
+    {
+        arm_system();
+    }
+    // process a command to disarm the system
+    else if (_fcncode == DISARM_FCNCODE)
+    {
+        disarm_system();
+    }
+    // process a command to FIIIIRRRRREEEEEE!
+    else if (_fcncode == FIRE_FCNCODE)
+    {
+        // fire 
+        fire();
+    }
+    // process a command to report the arm status
+    else if (_fcncode == ARM_STATUS_FCNCODE)
+    {
+        tlm_pos = 0;
+        // telemetry compilation
+        tlm_pos = addIntToTlm(armed, tlm_data, tlm_pos);
+        // send the message
+        sendTlmMsg(TLM_ADDR, tlm_data, tlm_pos);
+    }
+    else
+    {
+        tlm_pos = 0;
+        tlm_pos = addIntToTlm < uint8_t > (0xBB, tlm_data, tlm_pos);
+        sendTlmMsg(TLM_ADDR, tlm_data, tlm_pos);
+    }
+}
