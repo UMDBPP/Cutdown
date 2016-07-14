@@ -1,9 +1,14 @@
+/*
+ * Cutdown.cpp
+ * You must write code to check the boolean value "release" and release
+ */
+
 #include <Cutdown.h>
 
 char Cutdown::begin()
 {
     armed = false;
-    released = false;
+    release = false;
     pkt_type = 0;
     bytes_read = 0;
     fcn_code = 0;
@@ -72,11 +77,6 @@ void Cutdown::disarm_system()
     armed_ctr = -1;
 }
 
-bool Cutdown::cutdown_is_released()
-{
-    return released;
-}
-
 bool Cutdown::system_is_armed()
 {
     return armed;
@@ -115,24 +115,21 @@ void Cutdown::read_input()
 
 void Cutdown::command_response(uint8_t _fcncode, uint8_t data[], uint8_t length)
 {
-    // if released already, skip processing commands to arm, disarm, or fire
-    if (!released)
+    // process a command to arm the system
+    if (_fcncode == ARM_FCNCODE)
     {
-        // process a command to arm the system
-        if (_fcncode == ARM_FCNCODE)
-        {
-            arm_system();
-        }
-        // process a command to disarm the system
-        else if (_fcncode == DISARM_FCNCODE)
-        {
-            disarm_system();
-        }
-        // process a command to release
-        else if (_fcncode == FIRE_FCNCODE)
-        {
-            released = true;
-        }
+        arm_system();
+    }
+    // process a command to disarm the system
+    else if (_fcncode == DISARM_FCNCODE)
+    {
+        disarm_system();
+        release = false;
+    }
+    // process a command to release
+    else if (_fcncode == FIRE_FCNCODE)
+    {
+        release = true;
     }
 
     // process a command to report the arm status

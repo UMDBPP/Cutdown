@@ -32,14 +32,13 @@ class Cutdown
         void arm_system();
         void disarm_system();
         bool system_is_armed();
-        bool cutdown_is_released();
         void send_release_confirmation();
         void log(String message);
+        boolean release;
     private:
         void read_input();
         void command_response(uint8_t _fcn_code, uint8_t data[], uint8_t length);
         boolean armed;
-        boolean released;
         int pkt_type;
         int bytes_read;
         uint8_t incoming_bytes[100];
