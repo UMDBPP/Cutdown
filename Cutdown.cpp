@@ -44,15 +44,15 @@ char begin()
     fcn_code = 0;
     tlm_pos = 0;
     armed_ctr = -1;
-    
+
     // disarm the system before we enable the pins
     disarm_system();
-    
+
     pinMode(TRIGGER_PIN, OUTPUT);
     pinMode(ARMED_LED_PIN, OUTPUT);
-    
+
     Serial.begin(9600);
-    
+
     if (!InitXBee(XBEE_ADDR, XBEE_PAN_ID, Serial))
     {
         // it initialized
@@ -95,11 +95,11 @@ void arm_system()
 {
     armed = true;
     digitalWrite(ARMED_LED_PIN, HIGH);
-    
+
     tlm_pos = 0;
     tlm_pos = addIntToTlm < uint8_t > (0xAA, tlm_data, tlm_pos);
     sendTlmMsg(TLM_ADDR, tlm_data, tlm_pos);
-    
+
     armed_ctr = 1;
 }
 
@@ -110,7 +110,7 @@ void disarm_system()
     armed_ctr = -1;
 }
 
-bool isSystemArmed()
+bool system_is_armed()
 {
     return armed;
 }
@@ -131,7 +131,7 @@ void command_response(uint8_t _fcncode, uint8_t data[], uint8_t length)
     // process a command to FIIIIRRRRREEEEEE!
     else if (_fcncode == FIRE_FCNCODE)
     {
-        // fire 
+        // fire
         fire();
     }
     // process a command to report the arm status
