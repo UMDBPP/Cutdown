@@ -19,24 +19,7 @@ void loop()
     delay (CYCLE_DELAY);
 }
 
-// TODO abstract this
-void fire()
-{
-    // if the system is armed, fire
-    if (armed)
-    {
-        digitalWrite(TRIGGER_PIN, HIGH);
-        delay(3000);
-        digitalWrite(TRIGGER_PIN, LOW);
-        tlm_pos = 0;
-        tlm_pos = addIntToTlm < uint8_t > (0xFF, tlm_data, tlm_pos);
-        sendTlmMsg(TLM_ADDR, tlm_data, tlm_pos);
-    }
-    // disarm the system again to prevent repeated firing attempts
-    disarm_system();
-}
-
-char begin()
+char Cutdown::begin()
 {
     armed = false;
     pkt_type = 0;
@@ -68,7 +51,7 @@ char begin()
     }
 }
 
-void read_input()
+void Cutdown::read_input()
 {
     if ((pkt_type = readMsg(1)) == 0)
     {
@@ -91,7 +74,7 @@ void read_input()
     }
 }
 
-void arm_system()
+void Cutdown::arm_system()
 {
     armed = true;
     digitalWrite(ARMED_LED_PIN, HIGH);
@@ -110,13 +93,52 @@ void disarm_system()
     armed_ctr = -1;
 }
 
-bool system_is_armed()
+bool Cutdown::system_is_armed()
 {
     return armed;
 }
 
+void Cutdown::send_release_confirmation()
+{
+    // if the system is armed, fire
+    if (armed)
+    {
+        tlm_pos = 0;
+        tlm_pos = addIntToTlm < uint8_t > (0xFF, tlm_data, tlm_pos);
+        sendTlmMsg(TLM_ADDR, tlm_data, tlm_pos);
+    }
+    // disarm the system again to prevent repeated firing attempts
+    disarm_system();
+}
+
+// Private function, prints to serial
+void Cutdown::log(String message)
+{
+    byte seconds = (millis() / 1000) % 60;
+    byte minutes = seconds / 60;
+    byte hours = minutes / 60;
+
+    String time_string = "T+";
+    if (hours < 10)
+    {
+        time_string += "0";
+    }
+    time_string += String(hours) + ":";
+    if (minutes < 10)
+    {
+        time_string += "0";
+    }
+    time_string += String(minutes) + ":";
+    if (seconds < 10)
+    {
+        time_string += "0";
+    }
+    time_string += String(seconds);
+    Serial.println("[" + time_string + "] " + message);
+}
+
 // private
-void command_response(uint8_t _fcncode, uint8_t data[], uint8_t length)
+void Cutdown::command_response(uint8_t _fcncode, uint8_t data[], uint8_t length)
 {
     // process a command to arm the system
     if (_fcncode == ARM_FCNCODE)

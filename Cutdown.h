@@ -28,6 +28,7 @@ class Cutdown
         void disarm_system();
         bool system_is_armed();
         void send_release_confirmation();
+        void log(String message);
     private:
         void command_response(uint8_t _fcn_code, uint8_t data[], uint8_t length);
         boolean armed;
