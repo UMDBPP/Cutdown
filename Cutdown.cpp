@@ -15,10 +15,8 @@ char Cutdown::begin()
     tlm_pos = 0;
     armed_ctr = -1;
 
-    // disarm the system before we enable the pins
-    disarm_system();
-
     pinMode(ARMED_LED_PIN, OUTPUT);
+    disarm_system();
 
     Serial.begin(9600);
 

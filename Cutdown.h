@@ -7,9 +7,13 @@
 #ifndef Cutdown_h
 #define Cutdown_h
 
+#include <Arduino.h>
 #include <Wire.h>
-#include <XBee.h>
-#include <CCSDS_Xbee/ccsds_xbee.h>
+#include <ccsds_xbee.h>
+
+#ifndef XBEE_ADDR
+#define XBEE_ADDR 04
+#endif
 
 // physical definitions
 #define ARMED_LED_PIN 13
