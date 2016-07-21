@@ -41,7 +41,8 @@ class Cutdown
         boolean release;
     private:
         void read_input();
-        void command_response(uint8_t _fcn_code, uint8_t data[], uint8_t length);
+        void command_response(uint8_t _fcn_code, uint8_t data[],
+                uint8_t length);
         boolean armed;
         int pkt_type;
         int bytes_read;
