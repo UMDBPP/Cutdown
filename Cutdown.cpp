@@ -123,7 +123,6 @@ void Cutdown::command_response(uint8_t _fcncode, uint8_t data[], uint8_t length)
     // process a command to release
     else if (_fcncode == FIRE_FCNCODE)
     {
-        fire();
         release = true;
     }
     // process a command to report the arm status
