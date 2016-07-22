@@ -28,10 +28,18 @@
 #define CYCLE_DELAY 100     // time between execution cycles [ms]
 #define ARM_TIMEOUT (60000 / CYCLE_DELAY)
 
+/* response definitions */
+#define INIT_RESPONSE 0xAC
+#define READ_FAIL_RESPONSE 0xAF
+#define BAD_COMMAND_RESPONSE 0xBB
+#define ARMED_RESPONSE 0xAA
+#define DISARMED_RESPONSE 0xDD
+#define FIRED_RESPONSE 0xFF
+
 class Cutdown
 {
     public:
-        char begin();
+        void begin();
         void check_input();
         void arm_system();
         void disarm_system();
@@ -43,6 +51,7 @@ class Cutdown
         void read_input();
         void command_response(uint8_t _fcn_code, uint8_t data[],
                 uint8_t length);
+        void one_byte_message(uint8_t msg);
         boolean armed;
         int pkt_type;
         int bytes_read;

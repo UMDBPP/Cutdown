@@ -5,16 +5,9 @@
 
 #include <Cutdown.h>
 
-char Cutdown::begin()
+void Cutdown::begin()
 {
-    armed = false;
-    release = false;
-    pkt_type = 0;
-    bytes_read = 0;
-    fcn_code = 0;
-    tlm_pos = 0;
-    armed_ctr = -1;
-
+    pinMode(TRIGGER_PIN, OUTPUT);
     pinMode(ARMED_LED_PIN, OUTPUT);
 
     Serial.begin(9600);
@@ -22,16 +15,22 @@ char Cutdown::begin()
     if (!InitXBee(XBEE_ADDR, XBEE_PAN_ID, Serial))
     {
         // it initialized
-        tlm_pos = 0;
-        tlm_pos = addIntToTlm < uint8_t > (0xAC, tlm_data, tlm_pos);
-        sendTlmMsg(TLM_ADDR, tlm_data, tlm_pos);
-        return 1;
+        one_byte_message (INIT_RESPONSE);
     }
     else
     {
         // you're fucked
-        return 0;
     }
+
+    // disarm the system before we enable the pins
+    disarm_system();
+
+    armed = false;
+    pkt_type = 0;
+    bytes_read = 0;
+    fcn_code = 0;
+    tlm_pos = 0;
+    armed_ctr = -1;
 }
 
 void Cutdown::check_input()
@@ -60,9 +59,7 @@ void Cutdown::arm_system()
     armed = true;
     digitalWrite(ARMED_LED_PIN, HIGH);
 
-    tlm_pos = 0;
-    tlm_pos = addIntToTlm < uint8_t > (0xAA, tlm_data, tlm_pos);
-    sendTlmMsg(TLM_ADDR, tlm_data, tlm_pos);
+    one_byte_message (ARMED_RESPONSE);
 
     armed_ctr = 1;
 }
@@ -72,6 +69,8 @@ void Cutdown::disarm_system()
     armed = false;
     digitalWrite(ARMED_LED_PIN, LOW);
     armed_ctr = -1;
+    one_byte_message (DISARMED_RESPONSE);
+
 }
 
 bool Cutdown::system_is_armed()
@@ -102,10 +101,8 @@ void Cutdown::read_input()
             command_response(fcn_code, incoming_bytes, bytes_read);
         }
         else
-        {
-            tlm_pos = 0;
-            tlm_pos = addIntToTlm < uint8_t > (0xAF, tlm_data, tlm_pos);
-            sendTlmMsg(TLM_ADDR, tlm_data, tlm_pos);
+        {    // unknown packet type?
+            one_byte_message (READ_FAIL_RESPONSE);
         }
     }
 }
@@ -126,22 +123,30 @@ void Cutdown::command_response(uint8_t _fcncode, uint8_t data[], uint8_t length)
     // process a command to release
     else if (_fcncode == FIRE_FCNCODE)
     {
+        fire();
         release = true;
     }
-
     // process a command to report the arm status
-    if (_fcncode == ARM_STATUS_FCNCODE)
+    else if (_fcncode == ARM_STATUS_FCNCODE)
     {
-        tlm_pos = 0;
-        // telemetry compilation
-        tlm_pos = addIntToTlm(armed, tlm_data, tlm_pos);
-        // send the message
-        sendTlmMsg(TLM_ADDR, tlm_data, tlm_pos);
+        if (armed)
+        {
+            one_byte_message (ARMED_RESPONSE);
+        }
+        else
+        {
+            one_byte_message (DISARMED_RESPONSE);
+        }
     }
     else
     {
-        tlm_pos = 0;
-        tlm_pos = addIntToTlm < uint8_t > (0xBB, tlm_data, tlm_pos);
-        sendTlmMsg(TLM_ADDR, tlm_data, tlm_pos);
+        one_byte_message (BAD_COMMAND_RESPONSE);
     }
+}
+
+void Cutdown::one_byte_message(uint8_t msg)
+{
+    tlm_pos = 0;
+    tlm_pos = addIntToTlm<uint8_t>((uint8_t) msg, tlm_data, tlm_pos);
+    sendTlmMsg(TLM_ADDR, tlm_data, tlm_pos);
 }
