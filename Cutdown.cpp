@@ -7,7 +7,6 @@
 
 void Cutdown::begin()
 {
-    pinMode(TRIGGER_PIN, OUTPUT);
     pinMode(ARMED_LED_PIN, OUTPUT);
 
     Serial.begin(9600);
