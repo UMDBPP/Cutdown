@@ -16,7 +16,6 @@ char Cutdown::begin()
     armed_ctr = -1;
 
     pinMode(ARMED_LED_PIN, OUTPUT);
-    disarm_system();
 
     Serial.begin(9600);
 
