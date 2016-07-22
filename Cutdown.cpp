@@ -1,74 +1,92 @@
+/*
+ * Cutdown.cpp
+ * You must write code to check the boolean value "release" and release
+ */
+
 #include <Cutdown.h>
 
-// TODO port this loop into actual library code
-void loop()
+void Cutdown::begin()
 {
-    // look for any new messages
-    read_input();
-    // if system is armed, increment the timer indicating for how long
-    if (armed_ctr > 0)
-    {
-        armed_ctr++;
-    }
-    // if the system has been armed for more than the timeout, disarm
-    if (armed_ctr > ARM_TIMEOUT)
-    {
-        disarm_system();
-    }
-    // wait
-    delay (CYCLE_DELAY);
-}
+    pinMode(TRIGGER_PIN, OUTPUT);
+    pinMode(ARMED_LED_PIN, OUTPUT);
 
-// TODO abstract this
-void fire()
-{
-    // if the system is armed, fire
-    if (armed)
+    Serial.begin(9600);
+
+    if (!InitXBee(XBEE_ADDR, XBEE_PAN_ID, Serial))
     {
-        digitalWrite(TRIGGER_PIN, HIGH);
-        delay(3000);
-        digitalWrite(TRIGGER_PIN, LOW);
-        tlm_pos = 0;
-        tlm_pos = addIntToTlm < uint8_t > (0xFF, tlm_data, tlm_pos);
-        sendTlmMsg(TLM_ADDR, tlm_data, tlm_pos);
+        // it initialized
+        one_byte_message (INIT_RESPONSE);
     }
-    // disarm the system again to prevent repeated firing attempts
+    else
+    {
+        // you're fucked
+    }
+
+    // disarm the system before we enable the pins
     disarm_system();
-}
 
-char begin()
-{
     armed = false;
     pkt_type = 0;
     bytes_read = 0;
     fcn_code = 0;
     tlm_pos = 0;
     armed_ctr = -1;
-    
-    // disarm the system before we enable the pins
-    disarm_system();
-    
-    pinMode(TRIGGER_PIN, OUTPUT);
-    pinMode(ARMED_LED_PIN, OUTPUT);
-    
-    Serial.begin(9600);
-    
-    if (!InitXBee(XBEE_ADDR, XBEE_PAN_ID, Serial))
-    {
-        // it initialized
-        tlm_pos = 0;
-        tlm_pos = addIntToTlm < uint8_t > (0xAC, tlm_data, tlm_pos);
-        sendTlmMsg(TLM_ADDR, tlm_data, tlm_pos);
-        return 1;
-    }
-    else
-    {
-        // you're fucked
-        return 0;
-    }
 }
 
-void read_input()
+void Cutdown::check_input()
+{
+    // look for any new messages
+    read_input();
+
+    // if system is armed, increment the timer indicating for how long
+    if (armed_ctr > 0)
+    {
+        armed_ctr++;
+    }
+
+    // if the system has been armed for more than the timeout, disarm
+    if (armed_ctr > ARM_TIMEOUT)
+    {
+        disarm_system();
+    }
+
+    // wait
+    delay(CYCLE_DELAY);
+}
+
+void Cutdown::arm_system()
+{
+    armed = true;
+    digitalWrite(ARMED_LED_PIN, HIGH);
+
+    one_byte_message (ARMED_RESPONSE);
+
+    armed_ctr = 1;
+}
+
+void Cutdown::disarm_system()
+{
+    armed = false;
+    digitalWrite(ARMED_LED_PIN, LOW);
+    armed_ctr = -1;
+    one_byte_message (DISARMED_RESPONSE);
+
+}
+
+bool Cutdown::system_is_armed()
+{
+    return armed;
+}
+
+void Cutdown::send_release_confirmation()
+{
+    tlm_pos = 0;
+    tlm_pos = addIntToTlm < uint8_t > (0xFF, tlm_data, tlm_pos);
+    sendTlmMsg(TLM_ADDR, tlm_data, tlm_pos);
+}
+
+// private
+void Cutdown::read_input()
 {
     if ((pkt_type = readMsg(1)) == 0)
     {
@@ -83,40 +101,13 @@ void read_input()
             command_response(fcn_code, incoming_bytes, bytes_read);
         }
         else
-        {
-            tlm_pos = 0;
-            tlm_pos = addIntToTlm < uint8_t > (0xAF, tlm_data, tlm_pos);
-            sendTlmMsg(TLM_ADDR, tlm_data, tlm_pos);
+        {    // unknown packet type?
+            one_byte_message (READ_FAIL_RESPONSE);
         }
     }
 }
 
-void arm_system()
-{
-    armed = true;
-    digitalWrite(ARMED_LED_PIN, HIGH);
-    
-    tlm_pos = 0;
-    tlm_pos = addIntToTlm < uint8_t > (0xAA, tlm_data, tlm_pos);
-    sendTlmMsg(TLM_ADDR, tlm_data, tlm_pos);
-    
-    armed_ctr = 1;
-}
-
-void disarm_system()
-{
-    armed = false;
-    digitalWrite(ARMED_LED_PIN, LOW);
-    armed_ctr = -1;
-}
-
-bool isSystemArmed()
-{
-    return armed;
-}
-
-// private
-void command_response(uint8_t _fcncode, uint8_t data[], uint8_t length)
+void Cutdown::command_response(uint8_t _fcncode, uint8_t data[], uint8_t length)
 {
     // process a command to arm the system
     if (_fcncode == ARM_FCNCODE)
@@ -127,26 +118,35 @@ void command_response(uint8_t _fcncode, uint8_t data[], uint8_t length)
     else if (_fcncode == DISARM_FCNCODE)
     {
         disarm_system();
+        release = false;
     }
-    // process a command to FIIIIRRRRREEEEEE!
+    // process a command to release
     else if (_fcncode == FIRE_FCNCODE)
     {
-        // fire 
         fire();
+        release = true;
     }
     // process a command to report the arm status
     else if (_fcncode == ARM_STATUS_FCNCODE)
     {
-        tlm_pos = 0;
-        // telemetry compilation
-        tlm_pos = addIntToTlm(armed, tlm_data, tlm_pos);
-        // send the message
-        sendTlmMsg(TLM_ADDR, tlm_data, tlm_pos);
+        if (armed)
+        {
+            one_byte_message (ARMED_RESPONSE);
+        }
+        else
+        {
+            one_byte_message (DISARMED_RESPONSE);
+        }
     }
     else
     {
-        tlm_pos = 0;
-        tlm_pos = addIntToTlm < uint8_t > (0xBB, tlm_data, tlm_pos);
-        sendTlmMsg(TLM_ADDR, tlm_data, tlm_pos);
+        one_byte_message (BAD_COMMAND_RESPONSE);
     }
+}
+
+void Cutdown::one_byte_message(uint8_t msg)
+{
+    tlm_pos = 0;
+    tlm_pos = addIntToTlm<uint8_t>((uint8_t) msg, tlm_data, tlm_pos);
+    sendTlmMsg(TLM_ADDR, tlm_data, tlm_pos);
 }
