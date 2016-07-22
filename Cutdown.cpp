@@ -3,33 +3,37 @@
  * You must write code to check the boolean value "release" and release
  */
 
-#include <Cutdown.h>
+#include "Cutdown.h"
 
-void Cutdown::begin()
+char::Cutdown::begin()
 {
     pinMode(ARMED_LED_PIN, OUTPUT);
 
     Serial.begin(9600);
 
-    if (!InitXBee(XBEE_ADDR, XBEE_PAN_ID, Serial))
+    status = InitXBee(XBEE_ADDR, XBEE_PAN_ID, Serial);
+
+    if (!status)
     {
-        // it initialized
-        one_byte_message (INIT_RESPONSE);
+        one_byte_message(INIT_RESPONSE);
+
+        armed = false;
+        pkt_type = 0;
+        bytes_read = 0;
+        fcn_code = 0;
+        tlm_pos = 0;
+        cycles_armed = -1;
+
+        return 0;
     }
     else
     {
         // you're fucked
+        one_byte_message(BAD_COMMAND_RESPONSE);
+        one_byte_message(status);
+        one_byte_message(status >> 8);
+        return 1;
     }
-
-    // disarm the system before we enable the pins
-    disarm_system();
-
-    armed = false;
-    pkt_type = 0;
-    bytes_read = 0;
-    fcn_code = 0;
-    tlm_pos = 0;
-    armed_ctr = -1;
 }
 
 void Cutdown::check_input()
@@ -38,53 +42,37 @@ void Cutdown::check_input()
     read_input();
 
     // if system is armed, increment the timer indicating for how long
-    if (armed_ctr > 0)
+    if (cycles_armed > 0)
     {
-        armed_ctr++;
+        cycles_armed++;
     }
 
     // if the system has been armed for more than the timeout, disarm
-    if (armed_ctr > ARM_TIMEOUT)
+    if (cycles_armed > ARM_MILLISECOND_TIMEOUT / CYCLE_MILLISECOND_INTERVAL)
     {
         disarm_system();
     }
 
     // wait
-    delay(CYCLE_DELAY);
+    delay(CYCLE_MILLISECOND_INTERVAL);
 }
 
 void Cutdown::arm_system()
 {
     armed = true;
     digitalWrite(ARMED_LED_PIN, HIGH);
-
-    one_byte_message (ARMED_RESPONSE);
-
-    armed_ctr = 1;
+    one_byte_message(ARMED_RESPONSE);
+    cycles_armed = 1;
 }
 
 void Cutdown::disarm_system()
 {
     armed = false;
     digitalWrite(ARMED_LED_PIN, LOW);
-    armed_ctr = -1;
-    one_byte_message (DISARMED_RESPONSE);
-
+    one_byte_message(DISARMED_RESPONSE);
+    cycles_armed = -1;
 }
 
-bool Cutdown::system_is_armed()
-{
-    return armed;
-}
-
-void Cutdown::send_release_confirmation()
-{
-    tlm_pos = 0;
-    tlm_pos = addIntToTlm < uint8_t > (0xFF, tlm_data, tlm_pos);
-    sendTlmMsg(TLM_ADDR, tlm_data, tlm_pos);
-}
-
-// private
 void Cutdown::read_input()
 {
     if ((pkt_type = readMsg(1)) == 0)
@@ -129,16 +117,16 @@ void Cutdown::command_response(uint8_t _fcncode, uint8_t data[], uint8_t length)
     {
         if (armed)
         {
-            one_byte_message (ARMED_RESPONSE);
+            one_byte_message(ARMED_RESPONSE);
         }
         else
         {
-            one_byte_message (DISARMED_RESPONSE);
+            one_byte_message(DISARMED_RESPONSE);
         }
     }
     else
     {
-        one_byte_message (BAD_COMMAND_RESPONSE);
+        one_byte_message(BAD_COMMAND_RESPONSE);
     }
 }
 

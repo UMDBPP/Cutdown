@@ -9,15 +9,16 @@
 
 #include <Arduino.h>
 #include <Wire.h>
-#include <ccsds_xbee.h>
+#include <XBee.h>
+#include "ccsds_xbee.h"
 
 #ifndef XBEE_ADDR
-#define XBEE_ADDR 04
+#define XBEE_ADDR 05
 #endif
 
 // physical definitions
 #define ARMED_LED_PIN 13
-#define TLM_ADDR 02     // XBee channel of LINK
+#define TLM_ADDR 06     // XBee channel of LINK
 #define XBEE_PAN_ID 0x0B0B
 #define ARM_FCNCODE 0x0A
 #define ARM_STATUS_FCNCODE 0x01
@@ -25,8 +26,8 @@
 #define FIRE_FCNCODE 0x0F
 
 // behavioral constants
-#define CYCLE_DELAY 100     // time between execution cycles [ms]
-#define ARM_TIMEOUT (60000 / CYCLE_DELAY)
+#define CYCLE_MILLISECOND_INTERVAL 100     // time between execution cycles [ms]
+#define ARM_MILLISECOND_TIMEOUT 60000
 
 /* response definitions */
 #define INIT_RESPONSE 0xAC
@@ -39,27 +40,25 @@
 class Cutdown
 {
     public:
-        void begin();
+        char begin();
         void check_input();
         void arm_system();
         void disarm_system();
-        bool system_is_armed();
-        void send_release_confirmation();
-        void log(String message);
-        boolean release;
-    private:
         void read_input();
         void command_response(uint8_t _fcn_code, uint8_t data[],
                 uint8_t length);
         void one_byte_message(uint8_t msg);
+        boolean release;
         boolean armed;
+    private:
         int pkt_type;
         int bytes_read;
         uint8_t incoming_bytes[100];
         uint8_t fcn_code;
         uint8_t tlm_pos;
         uint8_t tlm_data[1];
-        int armed_ctr;    // counter tracking number of cycles system has been armed
+        int cycles_armed;
+        uint16_t status;
 };
 
 #endif
