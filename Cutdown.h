@@ -7,6 +7,8 @@
 #ifndef Cutdown_h
 #define Cutdown_h
 
+
+
 #include <Arduino.h>
 #include <Wire.h>
 #include <XBee.h>
@@ -18,7 +20,7 @@
 
 // physical definitions
 #define ARMED_LED_PIN 13
-#define TLM_ADDR 06     // XBee channel of LINK
+#define TLM_ADDR 02     // XBee channel of LINK
 #define XBEE_PAN_ID 0x0B0B
 #define ARM_FCNCODE 0x0A
 #define ARM_STATUS_FCNCODE 0x01
@@ -36,6 +38,7 @@
 #define ARMED_RESPONSE 0xAA
 #define DISARMED_RESPONSE 0xDD
 #define FIRED_RESPONSE 0xFF
+#define TIMEOUT_RESPONSE 0x42
 
 class Cutdown
 {
