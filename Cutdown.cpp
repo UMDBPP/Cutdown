@@ -5,7 +5,7 @@
 
 #include "Cutdown.h"
 
-char::Cutdown::begin()
+char::Cutdown::begin(uint16_t XBEE_ADDR)
 {
     pinMode(ARMED_LED_PIN, OUTPUT);
 
@@ -134,5 +134,5 @@ void Cutdown::one_byte_message(uint8_t msg)
 {
     tlm_pos = 0;
     tlm_pos = addIntToTlm<uint8_t>((uint8_t) msg, tlm_data, tlm_pos);
-    sendTlmMsg(TLM_ADDR, tlm_data, tlm_pos);
+    sendTlmMsg(LINK_XBEE_ADDR, tlm_data, tlm_pos);
 }

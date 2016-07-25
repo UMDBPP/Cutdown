@@ -12,16 +12,14 @@
 #include <Arduino.h>
 #include <Wire.h>
 #include <XBee.h>
-#include "ccsds_xbee.h"
-
-#ifndef XBEE_ADDR
-#define XBEE_ADDR 05
-#endif
+#include "CCSDS_Xbee/ccsds_xbee.h"
 
 // physical definitions
 #define ARMED_LED_PIN 13
-#define TLM_ADDR 02     // XBee channel of LINK
+#define LINK_XBEE_ADDR 02     // XBee channel of LINK
 #define XBEE_PAN_ID 0x0B0B
+
+// function codes
 #define ARM_FCNCODE 0x0A
 #define ARM_STATUS_FCNCODE 0x01
 #define DISARM_FCNCODE 0x0D
@@ -43,7 +41,7 @@
 class Cutdown
 {
     public:
-        char begin();
+        char begin(uint16_t XBEE_ADDR);
         void check_input();
         void arm_system();
         void disarm_system();
