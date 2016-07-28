@@ -3,7 +3,7 @@
  * You must write code to check the boolean value "release" and release
  */
 
-#include "Cutdown.h"
+#include <Cutdown.h>
 
 char::Cutdown::begin(uint16_t XBEE_ADDR)
 {
@@ -11,9 +11,9 @@ char::Cutdown::begin(uint16_t XBEE_ADDR)
 
     Serial.begin(9600);
 
-    status = InitXBee(XBEE_ADDR, XBEE_PAN_ID, Serial);
+    xbee_init_status = InitXBee(XBEE_ADDR, XBEE_PAN_ID, Serial);
 
-    if (!status)
+    if (!xbee_init_status)
     {
         one_byte_message(INIT_RESPONSE);
 
@@ -30,8 +30,8 @@ char::Cutdown::begin(uint16_t XBEE_ADDR)
     {
         // you're fucked
         one_byte_message(BAD_COMMAND_RESPONSE);
-        one_byte_message(status);
-        one_byte_message(status >> 8);
+        one_byte_message(xbee_init_status);
+        one_byte_message(xbee_init_status >> 8);
         return 1;
     }
 }

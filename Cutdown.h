@@ -7,12 +7,10 @@
 #ifndef Cutdown_h
 #define Cutdown_h
 
-
-
 #include <Arduino.h>
 #include <Wire.h>
 #include <XBee.h>
-#include "CCSDS_Xbee/ccsds_xbee.h"
+#include <CCSDS_XBee.h>
 
 // physical definitions
 #define ARMED_LED_PIN 13
@@ -59,7 +57,7 @@ class Cutdown
         uint8_t tlm_pos;
         uint8_t tlm_data[1];
         int cycles_armed;
-        uint16_t status;
+        uint16_t xbee_init_status;
 };
 
 #endif
